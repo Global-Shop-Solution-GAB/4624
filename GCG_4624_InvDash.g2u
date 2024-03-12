@@ -1,0 +1,806 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("Inventory Dashboard")
+Gui.Form..Size(15360,11775)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Event(Resize,Form_Resize)
+Gui.Form.GsGridcontrol.Create(GsGridcontrol)
+Gui.Form.GsGridcontrol.Size(14685,8835)
+Gui.Form.GsGridcontrol.Position(195,2130)
+Gui.Form.GsGridcontrol.Event(RowCellClick,GsGridcontrol_RowCellClick)
+Gui.Form.cmdRefresh.Create(Button)
+Gui.Form.cmdRefresh.Size(960,375)
+Gui.Form.cmdRefresh.Position(13875,735)
+Gui.Form.cmdRefresh.Caption("REFRESH")
+Gui.Form.cmdRefresh.Event(Click,cmdRefresh_Click)
+Gui.Form.pbStatus.Create(ProgressBar)
+Gui.Form.pbStatus.Size(3735,255)
+Gui.Form.pbStatus.Position(210,540)
+Gui.Form.pbStatus.Visible(False)
+Gui.Form.lblStatus.Create(Label,"****Change****",False,1935,255,0,255,225,True,0,"Arial",8,-2147483633,0)
+Gui.Form.framePermissions.Create(Frame)
+Gui.Form.framePermissions.Size(1665,495)
+Gui.Form.framePermissions.Position(13200,135)
+Gui.Form.optView.Create(Option)
+Gui.Form.optView.Size(810,255)
+Gui.Form.optView.Position(90,165)
+Gui.Form.optView.Parent("framePermissions")
+Gui.Form.optView.Caption("View")
+Gui.Form.optEdit.Create(Option)
+Gui.Form.optEdit.Size(855,255)
+Gui.Form.optEdit.Position(975,165)
+Gui.Form.optEdit.Parent("framePermissions")
+Gui.Form.optEdit.Caption("Edit")
+Gui.Form.picGSSLogo.Create(PictureBox)
+Gui.Form.picGSSLogo.Size(4155,1365)
+Gui.Form.picGSSLogo.Position(5745,105)
+Gui.Form.picGSSLogo.ToolTip("Double-Click for additional functions")
+Gui.Form.picGSSLogo.Event(DblClick,picGSSLogo_DblClick)
+Gui.frmWeb..Create
+Gui.frmWeb..Caption("Global Shop Solutions - Web Sites")
+Gui.frmWeb..Size(3990,2130)
+Gui.frmWeb..MinX(0)
+Gui.frmWeb..MinY(0)
+Gui.frmWeb..Position(0,0)
+Gui.frmWeb..BackColor(-2147483633)
+Gui.frmWeb..MousePointer(0)
+Gui.frmWeb..MaxButton(False)
+Gui.frmWeb..Sizeable(False)
+Gui.frmWeb..Event(UnLoad,frmWeb_UnLoad)
+Gui.frmWeb..MinButton(False)
+Gui.frmWeb.cmdGSS.Create(Button)
+Gui.frmWeb.cmdGSS.Size(3615,375)
+Gui.frmWeb.cmdGSS.Position(120,45)
+Gui.frmWeb.cmdGSS.Caption("Global Shop Solutions")
+Gui.frmWeb.cmdGSS.Event(Click,cmdGSS_Click)
+Gui.frmWeb.cmdServ.Create(Button)
+Gui.frmWeb.cmdServ.Size(3615,375)
+Gui.frmWeb.cmdServ.Position(120,450)
+Gui.frmWeb.cmdServ.Caption("ServiceWeb")
+Gui.frmWeb.cmdServ.Event(Click,cmdServ_Click)
+Gui.frmWeb.cmdUpd.Create(Button)
+Gui.frmWeb.cmdUpd.Size(3615,375)
+Gui.frmWeb.cmdUpd.Position(120,855)
+Gui.frmWeb.cmdUpd.Caption("GSS Updates")
+Gui.frmWeb.cmdUpd.Event(Click,cmdUpd_Click)
+Gui.frmWeb.cmdResetGsGC.Create(Button)
+Gui.frmWeb.cmdResetGsGC.Size(3615,375)
+Gui.frmWeb.cmdResetGsGC.Position(120,1260)
+Gui.frmWeb.cmdResetGsGC.Caption("Reset All Columns")
+Gui.frmWeb.cmdResetGsGC.Event(Click,cmdResetGsGC_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+v.global.spart.Declare(String)
+v.Global.sso.declare(string)
+v.Global.sline.Declare(string)
+v.Global.sjob.Declare(string)
+v.Global.ssuffix.Declare(String)
+v.Global.balreadymade.Declare(boolean,false)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'Coded by: WAW
+'Date: 08/7/2017
+'This project is for an Inventory Dashboard that runs form a custom menu item
+
+'set the logo 
+V.Local.sGSSLogo.Declare
+V.Local.sIcon.Declare
+V.Local.sDir.Declare
+V.Local.bDir.Declare
+
+F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+F.Intrinsic.String.Build("{0}\GAB\GAS\GAB_GSS_Logo_Green_Dash.png",V.Caller.PluginsDir,V.Local.sGssLogo)
+Gui.Form.picGSSLogo.Picture(V.Local.sGSSLogo)
+Gui.Form..Icon(V.Local.sIcon)
+
+Gui.Form.optEdit.Value(False)
+Gui.Form.optView.Value(True)
+f.Intrinsic.Control.CallSub(setAnchors)
+
+F.ODBC.Connection!conX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+'load the datatable
+f.Intrinsic.Control.CallSub(loadDT)
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	'Modified by Deni Y 11/25/20, turned off command(s) below since it's flagged as error by GABErrorScanner
+	'f.Intrinsic.Control.CallSub(unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.SetErrorHandler("Unload_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'close the form
+gui.Form..Visible(false)
+
+'Close the connection and end the program
+F.ODBC.Connection!conX.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdRefresh_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdRefresh_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+f.Intrinsic.Control.If(v.DataTable.dtInv.Exists,=,True)
+	f.Data.DataTable.Close("dtInv")
+f.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.If(v.DataView.dvInv.Exists,=,True)
+	f.Data.DataView.Close("dvInv")
+f.Intrinsic.Control.EndIf
+
+'hide the grid
+gui.Form.GsGridcontrol.visible(false)
+f.Intrinsic.Control.CallSub(LoadDt)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdRefresh_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.SetAnchors.Start
+F.Intrinsic.Control.SetErrorHandler("SetAnchors_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+	'0 - None
+	'1 - Top
+	'2 - Bottom
+	'4 - Left
+	'8 - Right
+	gui.Form.GsGridcontrol.anchor(15)
+	gui.Form.framePermissions.anchor(9)
+	gui.Form.cmdRefresh.anchor(9)
+	gui.Form.picGSSLogo.anchor(1)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("SetAnchors_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.SetAnchors.End
+
+Program.Sub.Form_Resize.Start
+F.Intrinsic.Control.SetErrorHandler("Form_Resize_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'Let Form grow larger than 15375, but not lower
+F.Intrinsic.Control.If(V.Screen.form.Width,<,15360)
+		Gui.form..Size(15360,V.Screen.Form.Height)
+F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Form_Resize_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.Form_Resize.End
+
+Program.Sub.LoadDt.Start
+F.Intrinsic.Control.SetErrorHandler("LoadDT_Err")
+F.Intrinsic.Control.ClearErrors
+v.Local..BulkDeclareString(sError, sExp, sSql)
+v.Local.idays.Declare(long)
+v.Local.i.Declare(long)
+v.Local.ddate.Declare(date)
+v.Local.x.Declare(long)
+v.Local.y.declare(long)
+v.Local.slast.Declare(String)
+v.Local.flast.Declare(float)
+v.Local.sret.Declare(String)
+v.Local.fret.Declare(float)
+v.Local.icounter.Declare(long)
+v.Local.suploaddata.Declare(String)
+v.Local.selements.Declare(String)
+v.Local.suploadtypes.Declare(String)
+v.Local.ddate.set(01/01/1900)
+
+f.Intrinsic.Ui.InvokeWaitDialog("Loading the Dashboard")
+
+f.Intrinsic.Control.If(v.DataTable.dtInv.Exists,=,true)
+	f.Data.DataTable.Close("dtInv")
+f.Intrinsic.control.EndIf
+
+f.Intrinsic.Control.If(v.DataTable.dtInv2.Exists,=,true)
+	f.Data.DataTable.Close("dtInv2")
+f.Intrinsic.control.EndIf
+
+'query for the inventory information
+f.Intrinsic.String.Build("Select RTRIM(PART) as PART, PRODUCT_LINE, Cast(Case When Flag_Lot = '' Or Flag_Lot = 'N' Then 0 Else 1 End As Bit) As LB, Cast(Case When Obsolete_Flag = '' Or Obsolete_Flag = 'N' Then 0 Else 1 End As Bit) As Obsolete_Flag, LOCATION, '' as NAME_CUSTOMER, '' as CUSTOMER, '' as CUSTOMER_PART, '' as WO, QTY_ONHAND from V_INVENTORY_MSTR where PART <> '{0}' ORDER By PART","",v.Local.ssql)
+F.Data.DataTable.CreateFromSQL("dtInv2","conx",V.Local.sSQL,True)
+f.Data.DataTable.AddColumn("dtInv2","EST_FG","date")
+f.Data.DataTable.AddColumn("dtInv2","NET_INV","date")
+f.Data.DataTable.AddColumn("dtInv2","BALANCE","float")
+f.Data.DataTable.AddColumn("dtInv2","LAST_12","float")
+
+'build the header titles
+f.Intrinsic.String.Build("{0}*!*{1}*!*{2}*!*{3}*!*{4}","PART","PRODUCT_LINE","OBSOLETE_FLAG","LOCATION","LB",v.Local.sElements)
+
+'create the upload datatable
+v.Local.suploadtypes.set("string*!*string*!*boolean*!*string*!*boolean")
+v.Local.suploaddata.Set("*!**!*false*!**!*false")
+
+F.Data.DataTable.CreateFromString("dtInv",v.Local.suploaddata,V.Local.selements,V.Local.suploadtypes,"*!*","@!@",True)
+f.Data.DataTable.AddColumn("dtInv","SO_REQ","float")
+f.Data.DataTable.AddColumn("dtInv","CUSTOMER","string")
+f.Data.DataTable.AddColumn("dtInv","NAME_CUSTOMER","string")
+f.Data.DataTable.AddColumn("dtInv","CUSTOMER_PART","string")
+f.Data.DataTable.AddColumn("dtInv","QTY_ONHAND","FLOAT")
+f.Data.DataTable.AddColumn("dtInv","EST_FG","date")
+f.Data.DataTable.AddColumn("dtInv","NET_INV","date")
+f.Data.DataTable.AddColumn("dtInv","LAST_12","float")
+
+f.Data.DataTable.AddColumn("dtInv","BALANCE","float")
+f.Data.DataTable.AddColumn("dtInv","WO","string")
+f.Data.DataTable.DeleteRow("dtINV")
+
+f.Intrinsic.Control.For(v.Local.i,0,v.DataTable.dtInv2.RowCount--,1)
+	'query for the WO
+	f.Intrinsic.String.Build("Select (JOB + '-' + SUFFIX) as WO  from V_JOB_HEADER where PART = '{0}' and DATE_CLOSED = '{1}' ",v.DataTable.dtInv2(v.Local.i).PART!fieldvaltrim,v.Local.ddate.PervasiveDate,v.Local.ssql)
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("RST",V.Local.sSql)
+	f.Intrinsic.Control.If(v.ODBC.conX!rst.EOF,=,True)
+		'add a row to the datatable
+		f.Data.DataTable.AddRow("dtInv","PART",v.DataTable.dtInv2(v.Local.i).PART!FIELDVALTRIM,"PRODUCT_LINE",v.DataTable.dtInv2(v.Local.i).PRODUCT_LINE!FIELDVALTRIM,"LB",v.DataTable.dtInv2(v.Local.i).LB!FIELDVALTRIM,"LOCATION",v.DataTable.dtInv2(v.Local.i).LOCATION!FIELDVALTRIM,"QTY_ONHAND",v.DataTable.dtInv2(v.Local.i).QTY_ONHAND!FIELDVALTRIM,"OBSOLETE_FLAG",v.DataTable.dtInv2(v.Local.i).OBSOLETE_FLAG!FIELDVALTRIM)
+	f.Intrinsic.Control.Else
+	
+		f.Intrinsic.Control.DoUntil(v.ODBC.conX!RST.EOF,=,True)
+			f.Data.DataTable.AddRow("dtInv","PART",v.DataTable.dtInv2(v.Local.i).PART!FIELDVALTRIM,"PRODUCT_LINE",v.DataTable.dtInv2(v.Local.i).PRODUCT_LINE!FIELDVALTRIM,"LB",v.DataTable.dtInv2(v.Local.i).LB!FIELDVALTRIM,"LOCATION",v.DataTable.dtInv2(v.Local.i).LOCATION!FIELDVALTRIM,"QTY_ONHAND",v.DataTable.dtInv2(v.Local.i).QTY_ONHAND!FIELDVALTRIM,"WO",v.ODBC.conX!RST.FieldValstring!WO,"OBSOLETE_FLAG",v.DataTable.dtInv2(v.Local.i).OBSOLETE_FLAG!FIELDVALTRIM)
+		f.odbc.conX!RST.MoveNext
+		f.Intrinsic.Control.Loop
+	f.Intrinsic.Control.EndIf
+	f.ODBC.conX!RST.Close
+f.Intrinsic.Control.next(v.Local.i)
+
+'create the query for xref dit
+v.Local.ssql.Set("Select RTRIM(PART) as PART, CUSTOMER from V_INV_CROSS_REF")
+
+'create a dictionary for the customer information
+Function.Data.Dictionary.CreateFromSQL("dict", "conx", v.Local.ssql)
+F.Data.Dictionary.SetDefaultReturn("dict","")
+F.Data.DataTable.FillFromDictionary("dtInv","Dict","PART","CUSTOMER")
+F.Data.Dictionary.Close("Dict")
+
+'create the query for xref dit
+v.Local.ssql.Set("Select RTRIM(PART) as PART, CUSTOMER_PART from V_INV_CROSS_REF")
+
+'create a dictionary for the customer information
+Function.Data.Dictionary.CreateFromSQL("dict", "conx", v.Local.ssql)
+F.Data.Dictionary.SetDefaultReturn("dict","")
+F.Data.DataTable.FillFromDictionary("dtInv","Dict","PART","CUSTOMER_PART")
+F.Data.Dictionary.Close("Dict")
+
+'create the query for customer info
+v.Local.ssql.Set("Select CUSTOMER, NAME_CUSTOMER from V_CUSTOMER_MASTER")
+
+'create a dictionary for the customer information
+Function.Data.Dictionary.CreateFromSQL("dict", "conx", v.Local.ssql)
+F.Data.Dictionary.SetDefaultReturn("dict","")
+F.Data.DataTable.FillFromDictionary("dtInv","Dict","CUSTOMER","NAME_CUSTOMER")
+F.Data.Dictionary.Close("Dict")
+
+f.Intrinsic.String.Build("Select RTRIM(PART) as PART, SUM(QTY_ORDERED) as SO_REQ from V_ORDER_LINES where DATE_SHIP = '{0}' GROUP BY PART",v.Local.ddate.PervasiveDate,v.Local.ssql)
+Function.Data.Dictionary.CreateFromSQL("dict", "conx", v.Local.ssql)
+F.Data.Dictionary.SetDefaultReturn("dict","0")
+F.Data.DataTable.FillFromDictionary("dtInv","Dict","Part","SO_REQ")
+F.Data.Dictionary.Close("Dict")
+
+'loop through and set the date
+f.Intrinsic.Control.For(v.Local.i,0,v.DataTable.dtInv.RowCount--,1)
+f.Intrinsic.String.Build("Select (SUM(QTY_ORDER) - SUM(QTY_COMPLETED)) as BALANCE from V_JOB_HEADER where DATE_CLOSED = '1900-01-01' and PART = '{0}' GROUP BY PART",v.DataTable.dtInv(v.Local.i).PART!fieldvaltrim,v.Local.ssql)
+Function.ODBC.Connection!conx.ExecuteAndReturn(v.Local.ssql,v.Local.sret)
+	v.Local.fret.Set(v.Local.sret)
+	f.Data.DataTable.SetValue("dtInv",v.Local.i,"BALANCE",v.Local.fret)
+	f.Intrinsic.String.Build("select Qty_Usage_Mo_01+Qty_Usage_Mo_02+Qty_Usage_Mo_03+Qty_Usage_Mo_04+Qty_Usage_Mo_05+Qty_Usage_Mo_06+Qty_Usage_Mo_07+Qty_Usage_Mo_08+Qty_Usage_Mo_09+Qty_Usage_Mo_10+Qty_Usage_Mo_11+Qty_Usage_Mo_12 As LAST_12 from V_INVENTORY_MSTR where PART = '{0}'",v.DataTable.dtInv(v.Local.i).PART!fieldvaltrim,v.Local.ssql)
+	Function.ODBC.Connection!conx.ExecuteAndReturn(v.Local.ssql, v.Local.slast)
+	v.Local.flast.Set(v.Local.slast)
+	f.Data.DataTable.SetValue("dtInv",v.Local.i,"LAST_12",v.Local.flast)		
+f.Intrinsic.Control.Next(v.Local.i)
+
+'add the est days of FG expression column
+f.Data.DataTable.AddExpressionColumn("dtInv","EST_DAYS_FG","float","iif([QTY_ONHAND] <> 0, iif([LAST_12]  <> 0, ([QTY_ONHAND]/[LAST_12]) * 365,0), 0)")
+f.Data.DataTable.AddExpressionColumn("dtInv","EST_DAYS_NET","float","iif([BALANCE] <> 0, iif([LAST_12]  <> 0, (([BALANCE]+[QTY_ONHAND])/[LAST_12]) * 365,0), 0)")
+
+f.Intrinsic.Control.If(v.Global.balreadymade,=,True)
+
+f.Intrinsic.Control.Else
+	'add the buttons
+	gui.Form..ContextMenuCreate("cmdButtons")
+	gui.Form..ContextMenuAddItem("cmdButtons","Issue Material",0,"Issue Material")
+	gui.Form..ContextMenuAddItem("cmdButtons","WIP",0,"WIP")
+	gui.Form..ContextMenuSetItemEventHandler("cmdButtons","Issue Material","cmdIssue_Click")
+	gui.Form..ContextMenuSetItemEventHandler("cmdButtons","WIP","cmdWIP")
+	'attaching the MenuClick subroutine to the Item 0 selection event
+	gui.form..contextmenusetitemeventhandler("cmdButtons","Issue Material",MenuClick)
+	v.Global.balreadymade.Set(true)
+f.Intrinsic.Control.EndIf
+
+'loop through and set the date
+f.Intrinsic.Control.For(v.Local.i,0,v.DataTable.dtInv.RowCount--,1)
+	f.Intrinsic.Date.DateAdd("d",v.DataTable.dtInv(v.Local.i).EST_DAYS_FG!fieldvaltrim,v.Ambient.date,v.Local.dDate)
+	f.Data.DataTable.SetValue("dtInv",v.Local.i,"EST_FG",v.Local.ddate)
+	
+	f.Intrinsic.Date.DateAdd("d",v.DataTable.dtInv(v.Local.i).EST_DAYS_NET!fieldvaltrim,v.Ambient.date,v.Local.dDate)
+	f.Data.DataTable.SetValue("dtInv",v.Local.i,"NET_INV",v.Local.ddate)	
+		
+	f.Intrinsic.Control.If(v.DataTable.dtInv(v.Local.i).EST_DAYS_NET!fieldvaltrim,=,0)
+		f.Data.DataTable.SetValue("dtInv",v.Local.i,"NET_INV",v.DataTable.dtInv(v.Local.i).EST_FG!fieldvaltrim)
+	f.Intrinsic.Control.EndIf
+	
+f.Intrinsic.Control.Next(v.Local.i)
+
+f.Intrinsic.API.GetMousePosition(v.Local.X,v.Local.Y)
+
+'format the grid
+f.Intrinsic.Control.CallSub(formatGrid)
+		
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("LoadDT_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.LoadDt.End
+
+Program.Sub.FormatGrid.Start
+F.Intrinsic.Control.SetErrorHandler("FormatGrid_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+	Gui.Form.GsGridcontrol.AddGridviewFromDatatable("gvInv","dtInv")
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","MultiSelect",True)
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","AllowSort",True)
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","AllowFilter",True)
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","ShowGroupPanel",True)
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","EnableAppearanceOddRow",True)
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","AllowColumnResizing",True)
+	Gui.Form.GsGridcontrol.SetGridViewProperty("gvInv","AllowColumnMoving",True)
+	
+	'set the titles
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","Caption","Part")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","OBSOLETE_FLAG","Caption","Obsolete")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LB","Caption","Lot/Bin")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PRODUCT_LINE","Caption","PL")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LOCATION","Caption","Loc")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NAME_CUSTOMER","Caption","Customer Name")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER","Caption","Cust. Number")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER_PART","Caption","Customer Part")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","Caption","Last 12 Month Usage")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","Caption","Balance")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","Caption","Work Order")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_Net","Caption","Est. Days of Net")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","Caption","SO Reqs")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","Caption","On Hand")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","Caption","Est. Days of FG")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","Caption","Est. FG Inv")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","Caption","Net Inv.")		
+	'dont allow edits
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","AllowEdit","False")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LB","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","OBSOLETE_FLAG","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PRODUCT_LINE","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LOCATION","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NAME_CUSTOMER","AllowEdit","False")
+	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER","AllowEdit","False")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER_PART","AllowEdit","False")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","AllowEdit","False")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_NET","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","AllowEdit","False")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","AllowEdit","False")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","AllowEdit","False")		
+	
+	'center the headers
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","OBSOLETE_FLAG","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LB","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PRODUCT_LINE","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LOCATION","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NAME_CUSTOMER","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER_PART","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_NET","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","HeaderHAlignment","Center")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","HeaderHAlignment","Center")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","HeaderHAlignment","Center")	
+	
+	'bold the headers
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","OBSOLETE_FLAG","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LB","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PRODUCT_LINE","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LOCATION","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NAME_CUSTOMER","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER_PART","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_NET","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","HeaderFontBold","True")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","HeaderFontBold","True")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","HeaderFontBold","True")	
+	
+	'set part and WO text to blue
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","CellForeColor","Blue")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","CellForeColor","Blue")	
+
+	'format numbers	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","DisplayCustomNumeric","#,###,###,##0.00")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","DisplayCustomNumeric","#,###,###,##0.00")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_NET","DisplayCustomNumeric","#,###,###,##0.00")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","DisplayCustomNumeric","#,###,###,##0.00")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","DisplayCustomNumeric","#,###,###,##0.00")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","DisplayCustomNumeric","#,###,###,##0.00")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","DisplayCustomDateTime","d")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","DisplayCustomDateTime","d")	
+	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","MinWidth","120")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","OBSOLETE_FLAG","MinWidth","60")	
+	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LB","MinWidth","60")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PRODUCT_LINE","MinWidth","60")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LOCATION","MinWidth","30")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NAME_CUSTOMER","MinWidth","200")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER","MinWidth","90")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER_PART","MinWidth","120")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","MinWidth","120")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","MinWidth","80")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","MinWidth","80")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_NET","MinWidth","80")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","MinWidth","80")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","MinWidth","80")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","MinWidth","115")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","MinWidth","100")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","MinWidth","80")		
+	
+	'set the visible indexs
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PRODUCT_LINE","VisibleIndex","0")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LB","VisibleIndex","1")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","OBSOLETE_FLAG","VisibleIndex","2")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","PART","VisibleIndex","3")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","WO","VisibleIndex","4")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NAME_CUSTOMER","VisibleIndex","5")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER","VisibleIndex","6")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","CUSTOMER_PART","VisibleIndex","7")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LAST_12","VisibleIndex","8")
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","QTY_ONHAND","VisibleIndex","9")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","BALANCE","VisibleIndex","10")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","SO_REQ","VisibleIndex","11")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_FG","VisibleIndex","12")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_FG","VisibleIndex","13")		
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","EST_DAYS_Net","VisibleIndex","14")	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","NET_INV","VisibleIndex","15")	
+	
+	Gui.Form.GsGridcontrol.SetColumnProperty("gvInv","LOCATION","Visible","False")
+	Gui.Form.GsGridcontrol.MainView("gvInv")
+	
+	f.Intrinsic.UI.CloseWaitDialog
+	
+	gui.Form.GsGridcontrol.visible(true)
+	'display the form
+	gui.Form..Visible(true)
+	
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("FormatGrid_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.FormatGrid.End
+
+Program.Sub.cmdIssue_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdIssue_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.sfilepathandname.Declare(string)
+v.Local.sissue.Declare(String)
+v.Local.sparams.Declare(String)
+
+'Build Call Wrapper String
+F.Intrinsic.String.Build("{0}!*!{1}!*!000100!*! !*! !*! !*! ",V.global.sjob,v.Global.ssuffix,V.Local.sParams)
+F.Global.General.CallWrapperSync(450150,V.Local.sParams)
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdIssue_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdIssue_Click.End
+
+Program.Sub.cmdWIP.Start
+F.Intrinsic.Control.SetErrorHandler("cmdWIP_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.idaytrf.Declare(long)
+v.Local.imonthtrf.Declare(long)
+v.Local.iyeartrf.Declare(long)
+v.Local.sparams.Declare(string)
+
+'build the parameters for the WIP callwrappers
+F.Intrinsic.Date.Day(V.Ambient.Date,V.Local.iDayTrf)
+F.Intrinsic.Date.Month(V.Ambient.Date,V.Local.iMonthTrf)
+F.Intrinsic.Date.Year(V.Ambient.Date,V.Local.iYearTrf)
+F.Intrinsic.String.Build("{0}!*!{1}!*!{2}!*!OS!*!!*!!*!!*!!*!!*!!*!{3}!*!{4}!*!16!*!03!*!02!*!!*!!*!!*!!*!!*!!*!!*!!*!!*!",V.Caller.CompanyCode,V.Caller.Terminal,V.Caller.Caller,V.global.sjob,V.global.ssuffix,V.Local.sParams)
+F.Global.General.CallWrapperSync(2003,V.Local.sParams)
+	
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdWIP_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdWIP.End
+
+Program.Sub.GsGridcontrol_RowCellClick.Start
+F.Intrinsic.Control.SetErrorHandler("RowCellClick_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.local.sparams.Declare(String)
+v.Local.sloc.Declare(string)
+v.Local.sjob.Declare(String)
+v.Local.y.Declare(long)
+v.Local.x.Declare(long)
+
+'check to see if right click
+f.Intrinsic.Control.If(v.args.button,=,"Right")
+	f.Intrinsic.String.Split(v.DataTable.dtInv(v.Args.rowindex).WO!fieldvaltrim,"-",v.Local.sjob)
+	v.Global.sjob.Set(v.Local.sjob(0))
+	v.Global.ssuffix.Set(v.Local.sjob(1))
+	f.Intrinsic.API.GetMousePosition(v.Local.X,v.Local.Y)
+	Gui.Form..ContextMenuShow("cmdButtons",v.Local.X,v.Local.Y)
+f.Intrinsic.Control.EndIf
+
+'check to see if the part column and if in view or edit
+F.Intrinsic.Control.SelectCase(v.Args.Column)
+F.Intrinsic.Control.case("PART")
+F.Intrinsic.Control.If(V.Screen.Form!optView.Value,=,True)
+	Gui.Form.GsGridcontrol.GetCellValueByColumnName("GVINV","LOCATION",V.Args.RowIndex,V.Local.sLoc)
+	F.Intrinsic.String.Build("{0}!*!{1}!*!{2}","V",v.Args.cellvalue,v.Local.sloc,V.Local.sParams)
+	F.Global.General.CallWrapperSync(300000,V.Local.sParams)
+F.Intrinsic.Control.Else
+	Gui.Form.GsGridcontrol.GetCellValueByColumnName("GVINV","LOCATION",V.Args.RowIndex,V.Local.sLoc)
+	F.Intrinsic.String.Build("{0}!*!{1}!*!{2}","O",v.Args.cellvalue,v.Local.sloc,V.Local.sParams)
+	F.Global.General.CallWrapperSync(300000,V.Local.sParams)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.case("WO")
+Gui.Form.GsGridcontrol.GetCellValueByColumnName("gvINV","WO",V.Args.RowIndex,V.Local.sJob)
+'split the job
+f.Intrinsic.String.Split(v.Local.sjob,"-",v.Local.sjob)
+f.Intrinsic.Control.If(v.Local.sjob(0),<>,"")
+	F.Intrinsic.Control.If(V.Screen.Form!optEdit.Value,=,"True")
+		'Build Call Wrapper String
+		F.Intrinsic.String.Build("{0}!*!{1}!*!O",V.Local.sJob(0),V.Local.sJob(1),V.Local.sParams)
+	
+		F.Global.General.CallWrapperSync(2009,V.Local.sParams)
+	F.Intrinsic.Control.Else
+		'Build Call Wrapper String
+		F.Intrinsic.String.Build("{0}!*!{1}!*!V",V.Local.sJob(0),V.Local.sJob(1),V.Local.sParams)
+		F.Global.General.CallWrapperSync(2009,V.Local.sParams)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.EndSelect
+	
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("RowCellClick_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.GsGridcontrol_RowCellClick.End
+
+Program.Sub.picGSSLogo_DblClick.Start
+F.Intrinsic.Control.SetErrorHandler("picGSSLogo_DblClick_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+	
+GUI.frmWeb..Visible(true)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("picGSSLogo_DblClick_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.picGSSLogo_DblClick.End
+
+
+Program.Sub.frmWeb_Unload.Start
+F.Intrinsic.Control.SetErrorHandler("frmWeb_Unload_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+gui.frmWeb..Visible(false)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("picGSSLogo_DblClick_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.frmWeb_Unload.End
+
+Program.Sub.cmdGSS_click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdGSS_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+	
+F.Intrinsic.Task.ShellExec(0,"Open","http://www.globalshopsolutions.com/","","",0)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdGSS_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdGSS_click.End
+
+Program.Sub.cmdServ_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdServ_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+F.Intrinsic.Task.ShellExec(0,"Open","http://gss-service.com/","","",0)	
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdServ_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdServ_Click.End
+
+Program.Sub.cmdUpd_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdUpd_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+F.Intrinsic.Task.ShellExec(0,"Open","http://gss-updates.com/","","",0)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdUpd_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdUpd_Click.End
+
+Program.Sub.cmdResetGsGc_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdResetGsGc_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+	
+	f.Intrinsic.UI.InvokeWaitDialog("Resetting Columns")
+
+	'set the titles
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,0,False,"PRODUCT_LINE",True,0,-999.0,1/1/1980,12:00:00 AM)
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,1,False,"LB",True,1,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,2,False,"OBSOLETE_FLAG",True,2,-999.0,1/1/1980,12:00:00 AM)		
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,3,False,"PART",True,3,-999.0,1/1/1980,12:00:00 AM)		
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,4,False,"WO",True,4,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,5,False,"NAME_CUSTOMER",True,5,-999.0,1/1/1980,12:00:00 AM)
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,6,False,"CUSTOMER",True,6,-999.0,1/1/1980,12:00:00 AM)
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,7,False,"CUSTOMER_PART",True,4,-999.0,1/1/1980,12:00:00 AM)		
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,8,False,"LAST_12",True,8,-999.0,1/1/1980,12:00:00 AM)
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,9,False,"QTY_ONHAND",True,9,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,10,False,"BALANCE",True,10,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,11,False,"SO_REQ",True,11,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,12,False,"EST_DAYS_FG",True,12,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,13,False,"EST_FG",True,13,-999.0,1/1/1980,12:00:00 AM)		
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,14,False,"EST_DAYS_NET",True,14,-999.0,1/1/1980,12:00:00 AM)	
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,15,False,"NET_INV",True,15,-999.0,1/1/1980,12:00:00 AM)		
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVINT",4200,16,False,"LOCATION",True,16,-999.0,1/1/1980,12:00:00 AM)
+
+	F.Intrinsic.Control.CallSub(frmweb_unload)
+	F.Intrinsic.Control.CallSub(cmdrefresh_click)
+	f.Intrinsic.UI.CloseWaitDialog
+	
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdResetGsGc_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdResetGsGc_Click.End
+
+Program.Sub.frmWeb_Unload.Start
+F.Intrinsic.Control.SetErrorHandler("frmWeb_Unload_Err")
+F.Intrinsic.Control.ClearErrors
+
+
+gui.frmWeb..Visible(false)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("frmWeb_Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4624_InvDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.frmWeb_Unload.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$dyunus$}$20201125100911612$}$xZ6SHi8g7O0Qsxe6AiO2NH3PnOKQRy0Tb/XtkQ4ntc4H2ANnf27q7cDBs+zEyD3Su+17qZJcGOM=
+Program.Sub.Comments.End
